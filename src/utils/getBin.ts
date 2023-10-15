@@ -139,6 +139,8 @@ export type LLAMAContext = {
     tokenNl(): number,
     getContextSize(): number
     getTokenString(token: number): string
+    saveState(): Buffer
+    loadState(state: Buffer): void
 };
 
 export type LLAMAGrammar = {

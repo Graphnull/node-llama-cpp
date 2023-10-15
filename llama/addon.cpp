@@ -232,6 +232,24 @@ class LLAMAContext : public Napi::ObjectWrap<LLAMAContext> {
 
     return Napi::String::New(info.Env(), ss.str());
   }
+  Napi::Value SaveState(const Napi::CallbackInfo& info) {
+    const size_t state_size = llama_get_state_size(ctx);
+    auto output = Napi::Buffer<uint8_t>::New(info.Env(), state_size);
+    llama_copy_state_data(ctx, output.Data());
+    return output;
+  }
+  void LoadState(const Napi::CallbackInfo& info) {
+    Napi::Buffer<uint8_t> state_buffer = info[0].As<Napi::Buffer<uint8_t>>();
+    const size_t state_size = state_buffer.ByteLength();
+
+    if (state_size != llama_get_state_size(ctx)) {
+      Napi::Error::New(info.Env(), "failed to validate state size").ThrowAsJavaScriptException();
+      return;
+    }
+
+    llama_set_state_data(ctx, state_buffer.Data());
+    return;
+  }
   Napi::Value Eval(const Napi::CallbackInfo& info);
   static void init(Napi::Object exports) {
     exports.Set("LLAMAContext",
@@ -245,6 +263,8 @@ class LLAMAContext : public Napi::ObjectWrap<LLAMAContext> {
                 InstanceMethod("tokenNl", &LLAMAContext::TokenNl),
                 InstanceMethod("getContextSize", &LLAMAContext::GetContextSize),
                 InstanceMethod("getTokenString", &LLAMAContext::GetTokenString),
+                InstanceMethod("saveState", &LLAMAContext::SaveState),
+                InstanceMethod("loadState", &LLAMAContext::LoadState),
                 InstanceMethod("eval", &LLAMAContext::Eval),
             }));
   }
